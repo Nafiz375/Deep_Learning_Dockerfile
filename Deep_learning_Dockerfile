@@ -1,0 +1,54 @@
+# Use the NVIDIA CUDA 12.2 base image with Ubuntu 22.04
+FROM nvidia/cuda:12.2.0-base-ubuntu22.04
+
+# Set environment variables for CUDA
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib64:$LD_LIBRARY_PATH
+ENV PATH /usr/local/cuda/bin:$PATH
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
+    wget \
+    git \
+    curl \
+    vim \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip and install Jupyter Notebook and Python libraries
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install \
+    jupyterlab \
+    numpy \
+    pandas \
+    matplotlib \
+    scikit-learn \
+    seaborn \
+    ipywidgets \
+    torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122 \
+    torchsummary \
+    ipdb \
+	torcheval \
+	torchmetrics \
+	torch-fidelity
+
+# Ensure Jupyter is on the PATH
+ENV PATH="/root/.local/bin:$PATH"
+
+# Create Jupyter configuration manually
+RUN mkdir -p /root/.jupyter/ && \
+    echo "c.NotebookApp.ip = '0.0.0.0'" >> /root/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.allow_root = True" >> /root/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.token = ''" >> /root/.jupyter/jupyter_notebook_config.py && \
+    echo "c.NotebookApp.open_browser = False" >> /root/.jupyter/jupyter_notebook_config.py
+
+# Set the working directory inside the container
+WORKDIR /workspace
+
+# Expose port 8888 for Jupyter
+EXPOSE 8888
+
+# Default command to start Jupyter Lab
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
